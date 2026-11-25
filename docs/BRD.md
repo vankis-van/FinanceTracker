@@ -239,7 +239,7 @@ A loan is money taken out of one of the household's accounts, often the joint ac
 | V2.11 | Security hardening: integrity-checked scripts, tighter headers, function limits, household and member limits. | Done and rolled out |
 | V2.13 | Pay from a plan as an expense while keeping its progress; charts of expenses by account and by category on the statement. | Built in code and tests; migration `20261125000000_plan_spend.sql` still to run |
 | V2.14 | Clear loading state while Gemini reads a photo (preview, steps, cancel, timeout). | Built in code; redeploy the app |
-| V2.15 | Gold price comes from muamalahemas.com, with Emas API ID as the backup; the price-cards scraper is archived. | Built in code; redeploy the `prices` function and the app |
+| V2.15 | Gold price comes from muamalahemas.com, with Emas API ID as the backup; the price-cards scraper is archived. | Done and rolled out |
 | Next | Nothing planned. Web Push delivery was considered and dropped; notifications stay in the in-app bell. | Off the roadmap |
 
 ## 14. Approval

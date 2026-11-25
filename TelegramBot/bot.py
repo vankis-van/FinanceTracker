@@ -523,7 +523,7 @@ def cmd_portfolio(message):
         f"   Cost {rupiah(t['cost'])}  •  Value {rupiah(t['value'])}\n"
         f"   P&L {rupiah(t['pl'])} ({t['plPct']:+.1f}%)"
     )
-    lines.append("\n_Stocks ~15min delayed. Gold = official Antam buyback "
+    lines.append("\n_Stocks ~15min delayed. Gold = Antam buyback "
                  "(Emas API ID), updated daily ~08:30 WIB. For monitoring only._")
     if any_missing:
         lines.append("_Some prices couldn't be fetched; try again shortly._")

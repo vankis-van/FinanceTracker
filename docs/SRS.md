@@ -61,7 +61,7 @@ Web Dashboard ─────────┘           (Transactions, Holdings, 
 ```
 PWA (Cloudflare Pages) ──► Supabase Auth + Postgres (RLS, RPCs)
          │                       ▲
-         ├──► Edge Function: prices ──► Emas API ID, Yahoo Finance
+         ├──► Edge Function: prices ──► muamalahemas.com, Emas API ID, Yahoo Finance
          ├──► Edge Function: ocr ─────► Gemini (optional)
          └──► On-device OCR (PaddleOCR in a Web Worker)
 
@@ -175,12 +175,12 @@ Priority: **M** must, **S** should, **C** could. "Version" says where the requir
 
 | ID | Requirement | Pri | Version | Trace |
 | --- | --- | --- | --- | --- |
-| FR-PRC-01 | Gold is priced at the Antam buyback price per gram from Emas API ID (updated daily around 08:30 WIB). | M | V1, V2 | BR-09 |
+| FR-PRC-01 | Gold is priced at the Antam 1 g buyback price per gram scraped from muamalahemas.com (a reseller's rate). | M | V1, V2 | BR-09 |
 | FR-PRC-02 | Stocks are priced from Yahoo Finance; `.JK` is appended to the ticker automatically. Prices may be about 15 minutes delayed. | M | V1, V2 | BR-09 |
 | FR-PRC-03 | Prices are fetched only by the bot, Apps Script or the `prices` Edge Function, never from the browser. | M | V1, V2 | C-3 |
 | FR-PRC-04 | `TelegramBot/diagnose.py` checks gold-pricing connectivity. | C | V1 | BR-09 |
 | FR-PRC-05 | The Portfolio page has a **Sync prices** button that asks the `prices` function again for the held stocks and gold, shows when prices were last updated, and says if the gold or a stock price could not be fetched. Prices also load when the app opens. Taps within 15 seconds of an update are ignored to protect the gold API's rate limit. | S | V2.8 | BR-09 |
-| FR-PRC-06 | When the Emas API key is missing, over its usage limit (HTTP 429) or failing, gold falls back to the public price-cards page (the official `antam` 1 g card): `scripts/gold_scraper.py` for the V1 bot, `goldFromPage()` in `_shared/prices.ts` for the Edge Functions. For a past day the page counts only if it was published on or before that day and within 7 days. The Python fallback reports `fallback_reason`. | S | V2.10 | BR-09 |
+| FR-PRC-06 | When that page is unreachable or its layout changed, gold falls back to Emas API ID (`EMAS_API_KEY`). The page is read by `scripts/gold_scraper.py` for the V1 bot and `goldFromPage()` in `_shared/prices.ts` for the Edge Functions. For a past day the page counts only if it was published on or before that day and within 7 days; otherwise the API is asked. The Python fallback reports `fallback_reason`. | S | V2.15 | BR-09 |
 | FR-PRC-07 | The `prices` function answers signed-in users only, allows each user 20 calls a minute, and gives every outbound lookup an 8-second timeout. | S | V2.11 | BR-09 |
 
 ### 3.7 Reports
@@ -367,7 +367,7 @@ All calls go to the `/exec` URL with `?action=...` and the shared secret.
 | `sell_holding(p_household, p_quantity, p_sell_price, p_account, p_holding, p_ticker, p_name, p_date, p_source)` | RPC | Sale across lots, sale record, proceeds transaction. |
 | `use_ocr_scan()` / `use_ocr_scan_for(p_user)` | RPC | Count a smart scan; refuse past 30 a day. |
 | `create_telegram_link_code(p_household)` | RPC | One-time bot link code. |
-| `prices` | Edge Function | Current gold and stock prices for the household's holdings, or for a past `date`. Signed-in users only, 20 calls a minute per user, 8-second timeouts, gold page fallback (FR-PRC-06). |
+| `prices` | Edge Function | Current gold and stock prices for the household's holdings, or for a past `date`. Signed-in users only, 20 calls a minute per user, 8-second timeouts, gold API fallback (FR-PRC-06). |
 | `ocr` | Edge Function | Gemini-based scan of a photo. Signed-in users only, 30 a day. `prices` and `ocr` answer only the origins in the optional `ALLOWED_ORIGINS` secret (any origin when it is unset). |
 | `telegram` | Edge Function | Bot webhook (shelved). |
 | `close_period(p_household, p_month, p_bank, p_notes, p_note, p_portfolio_value, p_unrealized)` | RPC | Owner-only month close: checks bank balances, stores the snapshot, locks the month. |
@@ -475,10 +475,10 @@ Google Sheet tabs: `Transactions`, `Holdings`, `Realized`. Columns mirror the V2
 | Telegram Bot API | Bot messages and webhook | `BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` |
 | Gemini API | Cloud OCR | `GEMINI_API_KEY` |
 | Anthropic API | Optional V1 OCR provider | API key |
-| Emas API ID | Antam buyback price | `EMAS_API_KEY` |
+| Emas API ID | Gold fallback when muamalahemas.com cannot be read | `EMAS_API_KEY` |
 | Yahoo Finance | IDX stock price | None |
 | jsDelivr | supabase-js, Chart.js, PaddleOCR, onnxruntime-web | None (pinned versions; supabase-js and Chart.js are integrity-checked) |
-| Emas price-cards page | Gold fallback when the Emas API is unavailable | None |
+| muamalahemas.com | Antam buyback price (first source) | None |
 | Google Fonts | Plus Jakarta Sans typeface | None |
 | Cloudflare Pages | PWA hosting | Deploy token |
 

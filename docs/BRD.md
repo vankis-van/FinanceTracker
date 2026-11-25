@@ -84,7 +84,7 @@ FinanceTracker V1 solved this with one Google Sheet as the database, a Google Ap
 | --- | --- | --- |
 | Ivan | Owner, developer, primary user | Accurate records, low effort, zero cost, owns the code. |
 | Mely | Household member, user | Easy logging from the phone, a clear view of shared money. |
-| External services | Google, Supabase, Cloudflare, Telegram, Gemini, Emas API ID, Yahoo Finance | Free-tier limits and terms of use must be respected. |
+| External services | Google, Supabase, Cloudflare, Telegram, Gemini, muamalahemas.com, Emas API ID, Yahoo Finance | Free-tier limits and terms of use must be respected. |
 
 ## 7. Users and usage
 
@@ -109,7 +109,7 @@ Priority: **M** = must have, **S** = should have, **C** = could have.
 | BR-06 | Users can photograph a transaction-history screen and import many rows after reviewing each one. | S | BO-2 |
 | BR-07 | Users can record gold and stock purchases and see current value and unrealized P&L. | M | BO-4 |
 | BR-08 | Users can record a sale and see realized P&L. | M | BO-4 |
-| BR-09 | Gold is valued at the official Antam buyback price; stocks at the IDX market price. | M | BO-4 |
+| BR-09 | Gold is valued at the Antam buyback price; stocks at the IDX market price. | M | BO-4 |
 | BR-10 | Users see income, expense and savings rate for this month, last month, this year and all time, plus expenses by category. | M | BO-3 |
 | BR-11 | Users can search, filter, edit and delete past entries. | M | BO-1 |
 | BR-12 | Records are stored in a database the household owns, and can be exported or mirrored to Google Sheets. | M | BO-5 |
@@ -191,7 +191,7 @@ A loan is money taken out of one of the household's accounts, often the joint ac
 
 - Both users have a smartphone with a modern browser and a camera.
 - Free tiers (Supabase, Cloudflare Pages, Gemini, Google Apps Script) remain available at roughly their current limits.
-- Emas API ID keeps publishing the Antam buyback price daily (around 08:30 WIB).
+- muamalahemas.com keeps publishing the Antam buyback price in its current page layout; Emas API ID is the backup, within its monthly quota.
 - Yahoo Finance keeps serving IDX quotes with the `.JK` suffix.
 - Usage stays within one household.
 
@@ -239,6 +239,7 @@ A loan is money taken out of one of the household's accounts, often the joint ac
 | V2.11 | Security hardening: integrity-checked scripts, tighter headers, function limits, household and member limits. | Done and rolled out |
 | V2.13 | Pay from a plan as an expense while keeping its progress; charts of expenses by account and by category on the statement. | Built in code and tests; migration `20261125000000_plan_spend.sql` still to run |
 | V2.14 | Clear loading state while Gemini reads a photo (preview, steps, cancel, timeout). | Built in code; redeploy the app |
+| V2.15 | Gold price comes from muamalahemas.com, with Emas API ID as the backup; the price-cards scraper is archived. | Built in code; redeploy the `prices` function and the app |
 | Next | Nothing planned. Web Push delivery was considered and dropped; notifications stay in the in-app bell. | Off the roadmap |
 
 ## 14. Approval

@@ -267,7 +267,7 @@
       if (["home", "portfolio"].includes(currentTab())) route();
       if (manual) {
         const missing = tickers.filter((t) => !(data.stocks && data.stocks[t]));
-        if (gold && !data.gold) toast("Gold price unavailable. Check the EMAS_API_KEY secret on Supabase.");
+        if (gold && !data.gold) toast("Gold price unavailable from both sources. Try again later.");
         else if (missing.length) toast(`Prices updated, but no price for ${missing.join(", ")}.`);
         else toast("Prices updated");
       }

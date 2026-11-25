@@ -1,7 +1,7 @@
 /* Service worker: caches the app shell so the PWA opens offline.
    Data requests to Supabase are never cached here; the app keeps its own
    last-known copy and an offline queue. Bump VERSION on every release. */
-const VERSION = "ft-v2.14.7";
+const VERSION = "ft-v2.14.8";
 const SHELL = [
   "./",
   "index.html",

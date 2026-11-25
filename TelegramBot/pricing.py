@@ -1,7 +1,7 @@
 """
 pricing.py — live market data for the finance bot.
 
-  get_gold_buyback()        -> Antam 1-gram buyback price (IDR), via JSON API
+  get_gold_buyback()        -> Antam 1-gram buyback price (IDR), via page, then API
   get_stock_price(ticker)   -> last price for an IDX ticker (IDR), via Yahoo
   build_portfolio(holdings) -> P&L per position + totals
 
@@ -15,20 +15,21 @@ import sys
 import json
 import requests
 
-# Fallback: scrape the public price page when the API key is missing, rate
-# limited or otherwise failing (scripts/gold_scraper.py, standard library only).
+# First gold source: the muamalahemas.com scraper (scripts/gold_scraper.py,
+# standard library only).
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
 try:
     import gold_scraper
-except Exception:  # pragma: no cover - the fallback is optional
+except Exception:  # pragma: no cover - the API still works without it
     gold_scraper = None
 
 UA = {"User-Agent": "Mozilla/5.0 (compatible; FinanceBot/1.0)"}
 
 
-# ---------------- GOLD (Antam buyback via Emas API ID) ----------------
+# ---------------- GOLD (Antam buyback) ----------------
 #
-# Source: Emas API ID  (https://emas.maulanar.my.id) — a dedicated gold-price
+# First source: https://muamalahemas.com/ (a reseller's Antam buyback, no key).
+# Second source: Emas API ID  (https://emas.maulanar.my.id) — a dedicated gold-price
 # SaaS whose "antam" resource is the OFFICIAL logammulia.com Antam price
 # (not a reseller rate). Requires a free API key.
 #
@@ -47,42 +48,37 @@ EMAS_API_KEY = os.environ.get("EMAS_API_KEY", "")
 
 def get_gold_buyback():
     """
-    Official Antam 1-gram buyback price (IDR) from Emas API ID.
+    Antam 1-gram buyback price (IDR).
     Returns {"price": float|None, "source": str, "date": str?, "change": float?, "error": str?}.
     Buyback = the price Antam BUYS BACK from you = what your gold is worth.
 
-    Tries the API first; when it gives no price (no key, rate limit / quota
-    reached, HTTP error, empty reply) it falls back to scraping the public
-    price-cards page, which needs no key. "fallback_reason" says why.
+    Reads muamalahemas.com first; when that gives no price (unreachable or the
+    layout changed) it falls back to Emas API ID. "fallback_reason" says why.
     """
-    res = _gold_from_api()
+    res = _gold_from_page()
     if res.get("price") is not None:
         return res
-    fb = _gold_from_page()
+    fb = _gold_from_api()
     if fb.get("price") is not None:
-        fb["fallback_reason"] = res.get("error", "API gave no price")
+        fb["fallback_reason"] = res.get("error", "page gave no price")
         return fb
-    res["error"] = f"{res.get('error', 'no price')}; page fallback failed: {fb.get('error')}"
+    res["error"] = f"{res.get('error', 'no price')}; API fallback failed: {fb.get('error')}"
     return res
 
 
 def _gold_from_page():
-    """Fallback: the official Antam 1g card on emas.maulanar.my.id/price-cards."""
+    """The "Buyback per 1 Gr" price on muamalahemas.com."""
     if gold_scraper is None:
-        return {"price": None, "source": "emas-page", "error": "gold_scraper not available"}
+        return {"price": None, "source": "muamalahemas", "error": "gold_scraper not available"}
     try:
-        for c in gold_scraper.scrape():
-            if (c["brand"].upper() == "ANTAM" and (c["source"] or "").lower() == "antam"
-                    and c["weight_gram"] == 1 and c["buyback"]):
-                bb = float(c["buyback"])
-                if not (500_000 <= bb <= 50_000_000):   # sanity bound
-                    continue
-                return {"price": bb,
-                        "source": "Emas API ID page (scraped, official Antam buyback)",
-                        "date": c["updated"] or "", "change": c["buyback_change"]}
-        return {"price": None, "source": "emas-page", "error": "no 1g Antam card on the page"}
+        page = gold_scraper.scrape()
+        bb = float(page["buyback"])
+        if not (500_000 <= bb <= 50_000_000):   # sanity bound
+            return {"price": None, "source": "muamalahemas", "error": f"price out of range: {bb}"}
+        return {"price": bb, "source": "muamalahemas.com (scraped Antam buyback)",
+                "date": page["updated"]}
     except Exception as e:
-        return {"price": None, "source": "emas-page", "error": str(e)}
+        return {"price": None, "source": "muamalahemas", "error": str(e)}
 
 
 def _gold_from_api():

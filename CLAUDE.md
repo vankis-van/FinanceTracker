@@ -8,7 +8,7 @@ Self-hosted personal finance system for an Indonesian household. **V2 is current
 - Make logging near-effortless: a Telegram message or a photo of a receipt/payslip should be enough.
 - Show live profit/loss on gold (Antam buyback) and IDX stocks alongside cash balances.
 - Keep the data self-owned (in the user's own Google Sheet) and the running cost at zero (free tiers only).
-- Fit the Indonesian context: Rupiah formatting, QRIS-style receipts, official Antam pricing.
+- Fit the Indonesian context: Rupiah formatting, QRIS-style receipts, Antam gold pricing.
 - V2 (Supabase + `pwa/` on Cloudflare Pages) is the current system; V1 hosting (24/7 bot, dashboard on GitHub Pages) is off the roadmap.
 - The GitHub repo is public: it must never hold a real secret (see Working rules).
 
@@ -18,7 +18,7 @@ Self-hosted personal finance system for an Indonesian household. **V2 is current
 
 ```
 PWA (Cloudflare Pages) ──► Supabase Auth + Postgres (RLS, RPCs)
-   ├──► Edge Function prices ──► Emas API ID (page fallback), Yahoo Finance
+   ├──► Edge Function prices ──► muamalahemas.com (Emas API ID fallback), Yahoo Finance
    ├──► Edge Function ocr ─────► Gemini (optional "smart read")
    └──► on-device OCR (PaddleOCR in a Web Worker)
 ```
@@ -45,8 +45,8 @@ Dashboard ────┘
 - **Transfer flow:** `/transfer` writes two linked rows and is excluded from income/expense totals.
 - **Dates:** `add` accepts an optional `date` (`YYYY-MM-DD`), defaulting to today. The bot drops malformed or future dates.
 - **Pricing:** fetched server-side only (bot or Apps Script), never in the browser.
-  - Gold: stored as `ticker: "LM"` with the brand (e.g. "Antam") in `name`; buyback price from Emas API ID, updated daily around 08:30 WIB.
-    - Fallback: when the `EMAS_API_KEY` is missing, over its usage limit (HTTP 429) or failing, gold falls back to scraping the public `https://emas.maulanar.my.id/price-cards` page (the official `antam` 1 g card). Python: `scripts/gold_scraper.py` (standard library only, also a CLI) used by `pricing.get_gold_buyback()`, which adds `fallback_reason`. Edge Functions: `goldFromPage()` in `_shared/prices.ts`; for a past day (`goldBuybackOn`) the page counts only when it was published on or before that day and within 7 days. Redeploy `prices`, `ocr` and `telegram` after changing `_shared/prices.ts`.
+  - Gold: stored as `ticker: "LM"` with the brand (e.g. "Antam") in `name`; priced at the Antam 1 g buyback scraped from `https://muamalahemas.com/` (a reseller's rate, no key).
+    - Fallback: when the page is unreachable or its layout changed, gold uses Emas API ID (`EMAS_API_KEY`, monthly quota). Python: `scripts/gold_scraper.py` (standard library only, also a CLI) used by `pricing.get_gold_buyback()`, which adds `fallback_reason`. Edge Functions: `goldFromPage()` in `_shared/prices.ts` (keep both parsers in step); for a past day (`goldBuybackOn`) the page counts only when it was published on or before that day and within 7 days, else the API is asked. Redeploy `prices`, `ocr` and `telegram` after changing `_shared/prices.ts`. The old `emas.maulanar.my.id/price-cards` scraper is in `archive/gold-price-cards/`.
   - Stocks: Yahoo Finance with `.JK` appended automatically, about 15 minutes delayed.
 - **Config:** one root `.env` serves both front-ends. The bot loads it through `TelegramBot/env_loader.py`; `scripts/build_dashboard_config.py` writes `Dashboard/config.js` containing only `APPS_SCRIPT_URL` and `API_SECRET`.
 
@@ -72,7 +72,7 @@ Dashboard ────┘
 | Dashboard | HTML, CSS, vanilla JS, Chart.js (`Dashboard/`) |
 | Bot | Python 3.12.7, pyTelegramBotAPI, requests, beautifulsoup4 (`TelegramBot/`) |
 | OCR | Gemini API (`gemini-2.5-flash`, free tier); Anthropic as an optional paid provider via `OCR_PROVIDER` |
-| Gold price | Emas API ID (official Antam buyback) |
+| Gold price | muamalahemas.com scrape (Antam buyback), Emas API ID as fallback |
 | Stock price | Yahoo Finance (IDX `.JK`) |
 | CI | None (the sample Jekyll workflow was removed); the PWA deploys to Cloudflare Pages with `scripts/deploy_pwa.py` |
 

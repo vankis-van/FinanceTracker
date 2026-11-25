@@ -1,6 +1,6 @@
 # FinanceTracker
 
-A self-hosted, phone-first money app for an Indonesian household: Rupiah formatting, receipt scanning and official Antam gold buyback pricing. Your data lives in your own Supabase project and the running cost is zero (free tiers only).
+A self-hosted, phone-first money app for an Indonesian household: Rupiah formatting, receipt scanning and Antam gold buyback pricing. Your data lives in your own Supabase project and the running cost is zero (free tiers only).
 
 To run your own copy, follow [`setup.md`](setup.md) (about 30 minutes). What is built and what is next: [`plan.md`](plan.md).
 
@@ -42,7 +42,7 @@ The app talks straight to Supabase with the signed-in user's session. Every tabl
 | Database and auth | Supabase (Postgres, magic-link or password sign-in) |
 | App | HTML, CSS, vanilla JS, Chart.js, no build step (`pwa/`) |
 | Scanning | PaddleOCR on the device (ONNX runtime); optional Gemini function |
-| Prices | Emas API ID (Antam buyback; if it fails, the public price-cards page), Yahoo Finance (IDX `.JK`), via a Supabase function |
+| Prices | muamalahemas.com (Antam buyback; if it fails, Emas API ID), Yahoo Finance (IDX `.JK`), via a Supabase function |
 | Hosting | Cloudflare Pages (`scripts/deploy_pwa.py`) |
 
 ---

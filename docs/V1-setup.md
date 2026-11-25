@@ -11,7 +11,7 @@ Secrets rule: never commit `.env` or `Dashboard/config.js`. In V1, `API_SECRET` 
 - **Python 3.12.7** (matches `.python-version` / `runtime.txt`)
 - A **Google account** (for Sheets + Apps Script)
 - A **Telegram account** (to create the bot via @BotFather)
-- API keys: **Gemini** (free OCR) and **Emas API ID** (free gold prices)
+- API keys: **Gemini** (free OCR); optionally **Emas API ID** (backup gold prices)
 
 ---
 
@@ -36,7 +36,9 @@ Whenever you change `Code.gs`, redeploy (or manage the deployment so the same UR
 1. Go to Google AI Studio and create an API key.
 2. Put it in `.env` as `GEMINI_API_KEY`.
 
-**Emas API ID (official Antam gold buyback price — free)**
+**Emas API ID (backup gold price source, optional, free)**
+
+Gold is read from muamalahemas.com first; this key is used only when that page cannot be read.
 
 1. Register at `https://emas.maulanar.my.id/register`.
 2. Copy your key from the dashboard.
@@ -107,7 +109,7 @@ You should see `Bot is running (long polling)...`. Message your bot `/start` to 
 python3 diagnose.py
 ```
 
-This prints whether `EMAS_API_KEY` is set and what the buyback endpoint returns.
+This prints whether `EMAS_API_KEY` is set, what the API returns and which source gave the price.
 
 ---
 
@@ -161,7 +163,7 @@ Dashboard ────┘
 ```
 
 - **Transactions** flow in from the bot or the dashboard; both POST JSON as `text/plain` (this avoids a CORS preflight that Apps Script doesn't answer).
-- **Gold** is standardized as `ticker: "LM"` with the brand (e.g. "Antam") in `name`, unifying gold and stocks under one holdings model. Buyback price comes from Emas API ID (official Antam, updated daily ~08:30 WIB).
+- **Gold** is standardized as `ticker: "LM"` with the brand (e.g. "Antam") in `name`, unifying gold and stocks under one holdings model. Buyback price comes from muamalahemas.com, with Emas API ID as the backup.
 - **Stocks** are priced via Yahoo Finance (`.JK` suffix added automatically), ~15 min delayed.
 - **Transfers** write two linked rows and are excluded from income/expense totals.
 - Live price fetching stays **server-side** (Apps Script / bot), never in the browser.

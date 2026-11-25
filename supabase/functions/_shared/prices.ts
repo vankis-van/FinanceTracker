@@ -1,37 +1,36 @@
 // Shared by the "prices" (app) and "telegram" (bot) functions: live Antam gold
-// buyback and IDX stock quotes. Gold uses the EMAS_API_KEY secret; when the key
-// is missing, over its usage limit or failing, it falls back to reading the
-// public price-cards page (no key needed).
+// buyback and IDX stock quotes. Gold is read from the public muamalahemas.com
+// page (no key needed); when that fails, it falls back to Emas API ID with the
+// EMAS_API_KEY secret.
 
 const UA = { "User-Agent": "Mozilla/5.0 (compatible; FinanceTracker/2.0)" };
 
 const inRange = (p: number) => p >= 500_000 && p <= 50_000_000;
 
-// Fallback: the official Antam 1 g card on the public price-cards page.
-// Each card is a `price-card-item` block with a brand, a source label ("● antam"),
-// a buyback price, a size and an update date. Returns null if the layout changed.
+const MONTHS = ["januari", "februari", "maret", "april", "mei", "juni", "juli",
+  "agustus", "september", "oktober", "november", "desember"];
+
+// First source: the "Buyback per 1 Gr" row on muamalahemas.com, dated by its
+// "Terakhir Diperbarui 25 November 2026" line. Returns null if the layout changed.
+// scripts/gold_scraper.py reads the same two things; change both together.
 export async function goldFromPage(): Promise<{ price: number; date: string } | null> {
   try {
-    const res = await fetch("https://emas.maulanar.my.id/price-cards", { headers: UA, signal: AbortSignal.timeout(8000) });
+    const res = await fetch("https://muamalahemas.com/", { headers: UA, signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     const html = await res.text();
-    for (const card of html.split('price-card-item"').slice(1)) {
-      if (!/^\s*data-brand="ANTAM"/.test(card)) continue;
-      if (!/●\s*antam\s*<\/span>/i.test(card)) continue; // official source, not galeri24 etc.
-      const size = card.match(/Ukuran<\/span>\s*<span[^>]*>\s*([\d.,]+)\s*Gram/i);
-      if (!size || Number(size[1].replace(",", ".")) !== 1) continue;
-      const bb = card.match(/Buyback<\/span>[\s\S]*?price-value[^>]*>\s*Rp\s*([\d.]+)\s*</);
-      const price = bb ? Number(bb[1].replace(/\./g, "")) : NaN;
-      if (!inRange(price)) continue;
-      const day = card.match(/Update Terakhir<\/span>\s*<span[^>]*>\s*(\d{4}-\d{2}-\d{2})/);
-      return { price, date: day ? day[1] : "" };
-    }
+    const bb = html.match(/Buyback\s+per\s+1\s*Gr\s*<\/td>\s*<td[^>]*>\s*Rp\.?\s*([\d.]+)/i);
+    const price = bb ? Number(bb[1].replace(/\./g, "")) : NaN;
+    if (!inRange(price)) return null;
+    const d = html.match(/Terakhir\s+Diperbarui\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/i);
+    const month = d ? MONTHS.indexOf(d[2].toLowerCase()) + 1 : 0;
+    const date = d && month ? `${d[3]}-${String(month).padStart(2, "0")}-${d[1].padStart(2, "0")}` : "";
+    return { price, date };
   } catch (_) { /* layout or network problem */ }
   return null;
 }
 
 export async function goldBuyback(): Promise<{ price: number; date: string } | null> {
-  return (await goldFromApi()) ?? (await goldFromPage());
+  return (await goldFromPage()) ?? (await goldFromApi());
 }
 
 async function goldFromApi(): Promise<{ price: number; date: string } | null> {
@@ -73,21 +72,18 @@ export async function stockPrice(ticker: string): Promise<number | null> {
 const DAY = 86_400_000;
 const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
-// Antam buyback for one past day. The Emas API filters by update date
-// (updated_at[eq]=YYYY-MM-DD); if that day has no row (weekend, holiday), the
-// previous days are tried, up to a week back.
+// Antam buyback for one past day. The page only shows the latest price, so it is
+// the right answer for a past day only when it was published on or before that day
+// (nothing newer to skip) and no more than a week earlier. Otherwise the Emas API
+// is asked, which filters by update date (updated_at[eq]=YYYY-MM-DD); if that day
+// has no row (weekend, holiday), the previous days are tried, up to a week back.
 export async function goldBuybackOn(date: string): Promise<{ price: number; date: string } | null> {
-  const viaApi = await goldOnFromApi(date);
-  if (viaApi) return viaApi;
-  // Fallback: the page only shows the latest price. It is the right answer for a
-  // past day when it was published on or before that day (nothing newer to skip)
-  // and no more than a week earlier, the same reach as the API search above.
   const page = await goldFromPage();
   if (page && /^\d{4}-\d{2}-\d{2}$/.test(page.date) && page.date <= date &&
       Date.parse(`${date}T00:00:00Z`) - Date.parse(`${page.date}T00:00:00Z`) < 7 * DAY) {
-    return { price: page.price, date: page.date };
+    return page;
   }
-  return null;
+  return await goldOnFromApi(date);
 }
 
 async function goldOnFromApi(date: string): Promise<{ price: number; date: string } | null> {

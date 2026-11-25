@@ -15,7 +15,7 @@ Phone / browser (the app, hosted on Cloudflare Pages)  ──►  your Supabase 
 | [Supabase](https://supabase.com) account | the database and sign-in (required) | Free |
 | [Cloudflare](https://cloudflare.com) account | putting the app online (required for phone use) | Free |
 | [Node.js](https://nodejs.org) 18+ and [Python](https://python.org) 3.10+ | running the setup scripts | Free |
-| Emas API ID key (optional) | live Antam gold prices | Free |
+| Emas API ID key (optional) | backup source for Antam gold prices | Free |
 | Google Gemini key (optional) | "smart read" for hard-to-read receipts | Free tier |
 
 Get the code:
@@ -105,7 +105,7 @@ npx supabase secrets set EMAS_API_KEY=your_emas_key
 npx supabase functions deploy prices
 ```
 
-Gold uses the official Antam buyback price (Emas API ID). If the key is missing, over its limit or failing, the function falls back to the public price-cards page and the app still shows a price. Stocks use Yahoo Finance with `.JK` added for IDX, about 15 minutes delayed. Each user may ask for prices 20 times a minute.
+Gold uses the Antam 1 g buyback price shown on [muamalahemas.com](https://muamalahemas.com/) (a reseller's rate, no key needed). If that page cannot be read, the function asks Emas API ID, which needs `EMAS_API_KEY` and has a monthly quota. Stocks use Yahoo Finance with `.JK` added for IDX, about 15 minutes delayed. Each user may ask for prices 20 times a minute.
 
 **Smart read for scanning.** Scanning works on the device with no key (PaddleOCR; the photo never leaves your phone). If a photo reads badly, "Try smart read" sends it to Google Gemini. To turn that on:
 
